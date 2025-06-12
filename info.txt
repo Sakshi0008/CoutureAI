@@ -1,0 +1,10 @@
+User Authentication:
+POST /api/users/register - Register a new user
+POST /api/users/login - Login user
+GET /api/users/profile - Get user profile
+Image Management:
+POST /api/images - Create a new image
+GET /api/images - Get all public images
+GET /api/images/my-images - Get user's images
+PUT /api/images/:id/like - Like/Unlike an image
+DELETE /api/images/:id - Delete an image
