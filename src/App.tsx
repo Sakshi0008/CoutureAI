@@ -10,7 +10,7 @@ import { authAPI, imagesAPI } from './services/api';
 
 export type User = {
   _id: string;
-  name: string;
+  fullName: string;
   email: string;
   avatar?: string;
 };
@@ -30,7 +30,8 @@ export type GeneratedImage = {
   };
   isPublic: boolean;
   likes: number;
-  createdAt: Date;
+  createdAt: string;
+  updatedAt?: string;
 };
 
 function App() {
@@ -43,7 +44,14 @@ function App() {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser({
+        _id: parsedUser.user.id || parsedUser.user._id,
+        fullName: parsedUser.user.fullName,
+        email: parsedUser.user.email,
+        avatar: parsedUser.user.avatar
+      });
+      console.log(user);
     }
     loadImages();
   }, []);
@@ -59,8 +67,14 @@ function App() {
     }
   };
 
-  const handleLogin = (userData: User) => {
-    setUser(userData);
+  const handleLogin = (userData: any) => {
+    const user = {
+      _id: userData.user.id || userData.user._id,
+      fullName: userData.user.fullName,  
+      email: userData.user.email,
+      avatar: userData.user.avatar
+    };
+    setUser(user);
     setShowAuthModal(false);
   };
 

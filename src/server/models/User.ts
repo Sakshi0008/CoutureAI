@@ -27,14 +27,7 @@ const userSchema = new Schema<IUser>({
   password: {
     type: String,
     required: [true, 'Please provide a password'],
-    minlength: 8,
     select: false,
-    // validate: {
-    //   validator: function(v: string) {
-    //     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(v);
-    //   },
-    //   message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    // }
   },
   avatar: {
     type: String,

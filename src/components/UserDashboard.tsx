@@ -73,14 +73,14 @@ export default function UserDashboard({ user, generatedImages, onBack, onLogout,
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                  <img src={user.avatar} alt={user.fullName} className="w-10 h-10 rounded-full object-cover" />
                 ) : (
                   <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">{user.name.charAt(0)}</span>
+                    <span className="text-white font-semibold">{user.fullName.charAt(0)}</span>
                   </div>
                 )}
                 <div>
-                  <p className="font-semibold text-gray-900">{user.name}</p>
+                  <p className="font-semibold text-gray-900">{user.fullName}</p>
                   <p className="text-sm text-gray-600">{user.email}</p>
                 </div>
               </div>

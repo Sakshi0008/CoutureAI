@@ -7,7 +7,6 @@ export interface AuthRequest extends Request {
   };
 }
 
-// ✅ Rename this function from `auth` to `protect`
 export const protect = async (
   req: AuthRequest,
   res: Response,

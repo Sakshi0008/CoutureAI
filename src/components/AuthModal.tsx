@@ -8,28 +8,95 @@ interface AuthModalProps {
   onSignup: (userData: any) => void;
 }
 
+interface FormData {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface ValidationErrors {
+  password?: string;
+  confirmPassword?: string;
+  email?: string;
+  fullName?: string;
+}
+
 export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {};
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (!isLogin) {
+      // Full name validation
+      if (formData.fullName.trim().length < 2) {
+        errors.fullName = 'Full name must be at least 2 characters long';
+      }
+
+      // Password validation
+      if (formData.password.length < 8) {
+        errors.password = 'Password must be at least 8 characters long';
+      } else if (!/[A-Z]/.test(formData.password)) {
+        errors.password = 'Password must contain at least one uppercase letter';
+      } else if (!/[a-z]/.test(formData.password)) {
+        errors.password = 'Password must contain at least one lowercase letter';
+      } else if (!/[0-9]/.test(formData.password)) {
+        errors.password = 'Password must contain at least one number';
+      } else if (!/[!@#$%^&*]/.test(formData.password)) {
+        errors.password = 'Password must contain at least one special character (!@#$%^&*)';
+      }
+
+      // Confirm password validation
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Passwords do not match';
+      }
+    } else {
+      // Login password validation
+      if (formData.password.length === 0) {
+        errors.password = 'Password is required';
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    setValidationErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
     
     try {
       console.log('Form submission:', {
         isLogin,
         formData: {
           ...formData,
-          password: '***' // Don't log actual password
+          password: '***', // Don't log actual password
+          confirmPassword: '***'
         }
       });
 
@@ -56,7 +123,17 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
         response: error.response?.data,
         status: error.response?.status
       });
-      setError(error.response?.data?.message || 'An error occurred during authentication');
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        setError('Invalid email or password');
+      } else if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Invalid input data');
+      } else if (error.response?.status === 409) {
+        setError('An account with this email already exists');
+      } else {
+        setError('An error occurred during authentication. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -67,6 +144,13 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
       ...prev,
       [e.target.name]: e.target.value
     }));
+    // Clear validation error when user starts typing
+    if (validationErrors[e.target.name as keyof ValidationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [e.target.name]: undefined
+      }));
+    }
   };
 
   return (
@@ -111,11 +195,14 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center"
+                    className={`w-full pl-10 pr-4 py-3 border ${validationErrors.fullName ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center`}
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
                 </div>
+                {validationErrors.fullName && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.fullName}</p>
+                )}
               </div>
             )}
 
@@ -130,11 +217,14 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center"
+                  className={`w-full pl-10 pr-4 py-3 border ${validationErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center`}
                   placeholder="Enter your email"
                   required
                 />
               </div>
+              {validationErrors.email && (
+                <p className="mt-1 text-sm text-red-500">{validationErrors.email}</p>
+              )}
             </div>
 
             <div className="text-center">
@@ -148,7 +238,7 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center"
+                  className={`w-full pl-10 pr-12 py-3 border ${validationErrors.password ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center`}
                   placeholder="Enter your password"
                   required
                 />
@@ -160,7 +250,61 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              {validationErrors.password && (
+                <p className="mt-1 text-sm text-red-500">{validationErrors.password}</p>
+              )}
             </div>
+
+            {!isLogin && (
+              <div className="text-center">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        confirmPassword: 'Pasting is not allowed in this field'
+                      }));
+                    }}
+                    onCopy={(e) => {
+                      e.preventDefault();
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        confirmPassword: 'Copying is not allowed in this field'
+                      }));
+                    }}
+                    onCut={(e) => {
+                      e.preventDefault();
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        confirmPassword: 'Cutting is not allowed in this field'
+                      }));
+                    }}
+                    className={`w-full pl-10 pr-12 py-3 border ${validationErrors.confirmPassword ? 'border-red-500' : 'border-gray-200'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-center`}
+                    placeholder="Confirm your password"
+                    required={!isLogin}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                {validationErrors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.confirmPassword}</p>
+                )}
+              </div>
+            )}
 
             <div className="text-center">
               <button
@@ -184,7 +328,17 @@ export default function AuthModal({ onClose, onLogin, onSignup }: AuthModalProps
             <p className="text-gray-600">
               {isLogin ? "Don't have an account?" : "Already have an account?"}
               <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setError('');
+                  setValidationErrors({});
+                  setFormData({
+                    fullName: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: ''
+                  });
+                }}
                 className="ml-2 text-emerald-600 hover:text-emerald-700 font-semibold transition-colors"
               >
                 {isLogin ? 'Sign Up' : 'Sign In'}

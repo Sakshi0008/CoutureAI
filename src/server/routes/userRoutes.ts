@@ -51,7 +51,7 @@ const registerHandler: RequestHandler = async (req, res, next) => {
 
     const token = jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
 
@@ -148,7 +148,7 @@ const loginHandler: RequestHandler = async (req, res, next) => {
 
     const token = jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
 

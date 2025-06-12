@@ -3,14 +3,24 @@ import axios from 'axios';
 const API_URL = 'http://localhost:5000/api';
 
 // Define response types
+interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  avatar?: string;
+}
+
+interface ApiUser {
+  _id: string;
+  fullName: string;
+  email: string;
+  avatar?: string;
+}
+
 interface AuthResponse {
   token: string;
   message: string;
-  user: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
+  user: ApiUser;
 }
 
 interface ImageResponse {
@@ -45,13 +55,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Helper function to transform API user to frontend user
+const transformApiUser = (apiUser: ApiUser): User => ({
+  _id: apiUser._id,
+  fullName: apiUser.fullName,
+  email: apiUser.email,
+  avatar: apiUser.avatar
+});
+
 // Auth API calls
 export const authAPI = {
   register: async (userData: { fullName: string; email: string; password: string }): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/users/register', userData);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      const user = transformApiUser(response.data.user);
+      localStorage.setItem('user', JSON.stringify({ user }));
     }
     return response.data;
   },
@@ -79,7 +98,8 @@ export const authAPI = {
       console.log('Login response:', response.data);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        const user = transformApiUser(response.data.user);
+        localStorage.setItem('user', JSON.stringify({ user }));
       }
       return response.data;
     } catch (error: any) {
