@@ -154,4 +154,16 @@ export const imagesAPI = {
     const response = await api.delete<{ message: string }>(`/images/${imageId}`);
     return response.data;
   },
+
+  generateImage: async (data: {
+    prompt: string;
+    fabric: string;
+    style: string;
+    occasion: string;
+    isPublic: boolean;
+    filters: Record<string, any>;
+  }): Promise<ImageResponse> => {
+    const response = await api.post<ImageResponse>('/images/generate', data);
+    return response.data;
+  },
 }; 

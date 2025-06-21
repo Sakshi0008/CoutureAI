@@ -89,12 +89,19 @@ function App() {
     setCurrentSection('home');
   };
 
-  const addGeneratedImage = async (imageData: FormData) => {
+  const addGeneratedImage = async (imageData: {
+    prompt: string;
+    fabric: string;
+    style: string;
+    occasion: string;
+    isPublic: boolean;
+    filters: Record<string, any>;
+  }) => {
     try {
-      const newImage = await imagesAPI.createImage(imageData);
+      const newImage = await imagesAPI.generateImage(imageData);
       setGeneratedImages(prev => [newImage, ...prev]);
     } catch (error) {
-      console.error('Error creating image:', error);
+      console.error('Error generating image:', error);
     }
   };
 

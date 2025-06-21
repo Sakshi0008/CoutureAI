@@ -2,6 +2,9 @@ import express, { Request, Response, NextFunction, RequestHandler } from 'expres
 import { GeneratedImage } from '../models/GeneratedImage';
 import { protect, AuthRequest } from '../middleware/auth';
 import { upload } from '../config/cloudinary';
+import axios from 'axios';
+import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
 
 const router = express.Router();
 
@@ -120,6 +123,78 @@ const deleteImageHandler: RequestHandler = async (req, res, next) => {
     res.status(400).json({ message: 'Error deleting image' });
   }
 };
+
+// @desc    Generate an image using Stable Diffusion and save it
+// @route   POST /api/images/generate
+// @access  Private
+router.post('/generate', protect, async (req: AuthRequest, res) => {
+  try {
+    const { prompt, fabric, style, occasion, filters, isPublic } = req.body;
+    const userId = req.user!._id;
+    // Compose the prompt for the model
+    let fullPrompt = prompt;
+    if (fabric) fullPrompt += `, fabric: ${fabric}`;
+    if (style) fullPrompt += `, style: ${style}`;
+    if (occasion) fullPrompt += `, occasion: ${occasion}`;
+    if (filters) {
+      const f = typeof filters === 'string' ? JSON.parse(filters) : filters;
+      if (f.color) fullPrompt += `, color: ${f.color}`;
+      if (f.pattern) fullPrompt += `, pattern: ${f.pattern}`;
+      if (f.texture) fullPrompt += `, texture: ${f.texture}`;
+    }
+
+    // 1. Call Hugging Face Stable Diffusion API
+    const hfResponse = await axios.post(
+      // 'https://api-inference.huggingface.co/models/sd-legacy/stable-diffusion-v1-5',
+      'https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5',
+      {
+        inputs: fullPrompt,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+          Accept: 'image/png'
+        },
+        responseType: 'arraybuffer', // Get image as buffer
+      }
+    );
+
+    // 2. Upload to Cloudinary from buffer
+    const uploadFromBuffer = (buffer: Buffer) => {
+      return new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'coutureai' },
+          (error, result) => {
+            if (result) resolve(result);
+            else reject(error);
+          }
+        );
+        streamifier.createReadStream(buffer).pipe(stream);
+      });
+    };
+
+    const imageBuffer = Buffer.from(hfResponse.data as Buffer);
+    const uploadResult = await uploadFromBuffer(imageBuffer);
+
+    // 3. Save to DB
+    const newImage = await GeneratedImage.create({
+      userId,
+      imageUrl: uploadResult.secure_url,
+      prompt,
+      fabric,
+      style,
+      occasion,
+      filters: typeof filters === 'string' ? JSON.parse(filters) : filters,
+      isPublic: isPublic === 'true' || isPublic === true,
+    });
+
+    res.status(201).json(newImage);
+  } catch (error) {
+    console.error('Error generating image:', error);
+    res.status(500).json({ message: 'Error generating image' });
+  }
+});
 
 // Register routes
 router.post('/', protect, upload.single('image'), createImageHandler);

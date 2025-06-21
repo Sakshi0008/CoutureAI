@@ -4,7 +4,14 @@ import type { User } from '../App';
 
 interface GeneratorProps {
   user: User | null;
-  onImageGenerated: (imageData: FormData) => Promise<void>;
+  onImageGenerated: (imageData: {
+    prompt: string;
+    fabric: string;
+    style: string;
+    occasion: string;
+    isPublic: boolean;
+    filters: Record<string, any>;
+  }) => Promise<void>;
   onLoginRequired: () => void;
 }
 
@@ -34,16 +41,14 @@ export default function Generator({ user, onImageGenerated, onLoginRequired }: G
     setError('');
 
     try {
-      const formData = new FormData();
-      formData.append('prompt', prompt);
-      formData.append('fabric', fabric);
-      formData.append('style', style);
-      formData.append('occasion', occasion);
-      formData.append('isPublic', isPublic.toString());
-      formData.append('filters', JSON.stringify({}));
-
-      await onImageGenerated(formData);
-      
+      await onImageGenerated({
+        prompt,
+        fabric,
+        style,
+        occasion,
+        isPublic,
+        filters: {},
+      });
       // Reset form
       setPrompt('');
       setFabric('');
