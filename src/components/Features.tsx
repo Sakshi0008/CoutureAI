@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Ruler, TrendingUp, ShoppingBag } from 'lucide-react';
+import { Zap, TrendingUp, Shield, Wand2 } from 'lucide-react';
 
 export default function Features() {
   const features = [
@@ -10,27 +10,28 @@ export default function Features() {
       gradient: 'from-yellow-400 to-orange-500'
     },
     {
-      icon: Ruler,
-      title: 'Custom Tailoring',
-      description: 'Get precise measurements and fabric suggestions tailored to your specific design requirements.',
-      gradient: 'from-blue-400 to-purple-500'
+      icon: Wand2,
+      title: 'One-Click Generation',
+      description: 'Quickly create unique fashion designs using simple prompts and customizable filters—no design skills required.',
+      gradient: 'from-pink-400 to-red-500'
     },
     {
       icon: TrendingUp,
-      title: 'Trend Insights',
-      description: 'Stay ahead of fashion trends with AI-powered insights into what\'s popular and emerging in the industry.',
+      title: 'Be In Trend',
+      description: 'Explore a public gallery of designs shared by other users, discover trending looks, and get inspired by the creativity of the community.',
       gradient: 'from-emerald-400 to-teal-500'
     },
     {
-      icon: ShoppingBag,
-      title: 'Seamless Shopping',
-      description: 'Find similar real-world products and connect with manufacturers to bring your designs to life.',
-      gradient: 'from-pink-400 to-red-500'
-    }
+      icon: Shield,
+      title: 'Privacy Controls',
+      description: 'Choose which of your creations are public or private, and switch visibility at any time with a single click.',
+      gradient: 'from-blue-400 to-purple-500'
+    },
+    
   ];
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <section id="features" className="py-20 bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
@@ -68,7 +69,7 @@ export default function Features() {
         </div>
 
         {/* Stats Section */}
-        <div className="mt-20 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-12 text-white">
+        {/* <div className="mt-20 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-12 text-white">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
               <div className="text-4xl md:text-5xl font-bold mb-2">10K+</div>
@@ -83,7 +84,7 @@ export default function Features() {
               <div className="text-emerald-100 text-lg">AI Availability</div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

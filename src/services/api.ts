@@ -7,14 +7,12 @@ interface User {
   _id: string;
   fullName: string;
   email: string;
-  avatar?: string;
 }
 
 interface ApiUser {
   _id: string;
   fullName: string;
   email: string;
-  avatar?: string;
 }
 
 interface AuthResponse {
@@ -34,6 +32,7 @@ interface ImageResponse {
   filters: Record<string, any>;
   isPublic: boolean;
   likes: number;
+  likedBy: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -60,7 +59,6 @@ const transformApiUser = (apiUser: ApiUser): User => ({
   _id: apiUser._id,
   fullName: apiUser.fullName,
   email: apiUser.email,
-  avatar: apiUser.avatar
 });
 
 // Auth API calls
@@ -164,6 +162,16 @@ export const imagesAPI = {
     filters: Record<string, any>;
   }): Promise<ImageResponse> => {
     const response = await api.post<ImageResponse>('/images/generate', data);
+    return response.data;
+  },
+
+  getLikedImages: async (): Promise<ImageResponse[]> => {
+    const response = await api.get<ImageResponse[]>('/images/liked');
+    return response.data;
+  },
+
+  updatePublicStatus: async (imageId: string, isPublic: boolean): Promise<ImageResponse> => {
+    const response = await api.put<ImageResponse>(`/images/${imageId}/public`, { isPublic });
     return response.data;
   },
 }; 

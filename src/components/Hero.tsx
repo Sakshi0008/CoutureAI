@@ -12,7 +12,7 @@ interface HeroProps {
 
 export default function Hero({ onTryNow, onViewGallery, user, onLogin, onLogout, onDashboard }: HeroProps) {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
@@ -59,7 +59,7 @@ export default function Hero({ onTryNow, onViewGallery, user, onLogin, onLogout,
         </div>
       </nav>
 
-      {/* Content */}
+      
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 mb-8 border border-white/30">
           <Sparkles className="w-5 h-5 text-emerald-300" />

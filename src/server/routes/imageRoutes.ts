@@ -45,7 +45,7 @@ const getPublicImagesHandler: RequestHandler = async (req, res, next) => {
   try {
     const images = await GeneratedImage.find({ isPublic: true })
       .sort({ createdAt: -1 })
-      .populate('userId', 'name avatar');
+      .populate('userId', 'name');
     
     res.json(images);
   } catch (error) {
@@ -120,6 +120,54 @@ const deleteImageHandler: RequestHandler = async (req, res, next) => {
   }
 };
 
+// @desc    Update public/private status of an image
+// @route   PUT /api/images/:id/public
+// @access  Private
+const updatePublicStatusHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?._id;
+    if (!userId) {
+      res.status(401).json({ message: 'Not authorized' });
+      return;
+    }
+    const image = await GeneratedImage.findById(req.params.id);
+    if (!image) {
+      res.status(404).json({ message: 'Image not found' });
+      return;
+    }
+    if (image.userId.toString() !== userId.toString()) {
+      res.status(401).json({ message: 'Not authorized' });
+      return;
+    }
+    if (typeof req.body.isPublic !== 'boolean') {
+      res.status(400).json({ message: 'isPublic must be boolean' });
+      return;
+    }
+    image.isPublic = req.body.isPublic;
+    await image.save();
+    res.json(image);
+  } catch (error) {
+    console.error('Error updating public status:', error);
+    res.status(400).json({ message: 'Error updating public status' });
+  }
+};
+
+// @desc    Get images liked by the current user
+// @route   GET /api/images/liked
+// @access  Private
+const getLikedImagesHandler: RequestHandler = async (req, res, next) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?._id;
+    const images = await GeneratedImage.find({ likedBy: userId }).sort({ createdAt: -1 });
+    res.json(images);
+  } catch (error) {
+    console.error('Error fetching liked images:', error);
+    res.status(400).json({ message: 'Error fetching liked images' });
+  }
+};
+
 async function generateImageWithPythonBackend(prompt: string, options: any): Promise<Buffer> {
   const response = await axios.post('http://localhost:5001/generate', {
     prompt,
@@ -188,7 +236,9 @@ router.post('/generate', protect, async (req: AuthRequest, res) => {
 router.post('/', protect, upload.single('image'), createImageHandler);
 router.get('/', getPublicImagesHandler);
 router.get('/my-images', protect, getUserImagesHandler);
+router.get('/liked', protect, getLikedImagesHandler);
 router.put('/:id/like', protect, likeImageHandler);
 router.delete('/:id', protect, deleteImageHandler);
+router.put('/:id/public', protect, updatePublicStatusHandler);
 
 export default router; 

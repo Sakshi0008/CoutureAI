@@ -14,6 +14,7 @@ export interface IGeneratedImage extends mongoose.Document {
   };
   isPublic: boolean;
   likes: number;
+  likedBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +58,11 @@ const generatedImageSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  likedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: [],
+  }],
 }, {
   timestamps: true,
 });

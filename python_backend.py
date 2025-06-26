@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # Stability AI API configuration
-# STABILITY_API_KEY = os.getenv("STABILITY_API_KEY")
-STABILITY_API_KEY = "sk-tod32ntEz7b9QGsbDjFxpBXAVWR8O6eClH3u6J79acY9xKUy"
+STABILITY_API_KEY = os.getenv("STABILITY_API_KEY")
+# STABILITY_API_KEY = ""
 
 if not STABILITY_API_KEY:
     logger.error("STABILITY_API_KEY environment variable not set!")

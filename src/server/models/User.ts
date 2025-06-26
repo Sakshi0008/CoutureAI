@@ -5,7 +5,6 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
-  avatar?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -28,11 +27,7 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: [true, 'Please provide a password'],
     select: false,
-  },
-  avatar: {
-    type: String,
-    default: '',
-  },
+  }
 }, {
   timestamps: true,
 });

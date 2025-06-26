@@ -12,7 +12,6 @@ export type User = {
   _id: string;
   fullName: string;
   email: string;
-  avatar?: string;
 };
 
 export type GeneratedImage = {
@@ -30,6 +29,7 @@ export type GeneratedImage = {
   };
   isPublic: boolean;
   likes: number;
+  likedBy: string[];
   createdAt: string;
   updatedAt?: string;
 };
@@ -39,27 +39,27 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [likedImages, setLikedImages] = useState<GeneratedImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser({
-        _id: parsedUser.user.id || parsedUser.user._id,
-        fullName: parsedUser.user.fullName,
-        email: parsedUser.user.email,
-        avatar: parsedUser.user.avatar
-      });
-      console.log(user);
-    }
-    loadImages();
-  }, []);
+  // Helper to merge and deduplicate images by _id
+  const mergeImages = (arr1: GeneratedImage[], arr2: GeneratedImage[]) => {
+    const map = new Map<string, GeneratedImage>();
+    arr1.forEach(img => map.set(img._id, img));
+    arr2.forEach(img => map.set(img._id, img));
+    return Array.from(map.values());
+  };
 
-  const loadImages = async () => {
+  const loadAllImages = async (currentUser: User | null) => {
+    setIsLoading(true);
     try {
-      const images = await imagesAPI.getPublicImages();
-      setGeneratedImages(images);
+      const publicImages = await imagesAPI.getPublicImages();
+      if (currentUser) {
+        const userImages = await imagesAPI.getUserImages();
+        setGeneratedImages(mergeImages(publicImages, userImages));
+      } else {
+        setGeneratedImages(publicImages);
+      }
     } catch (error) {
       console.error('Error loading images:', error);
     } finally {
@@ -67,12 +67,39 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    let parsedUser = null;
+    if (storedUser) {
+      parsedUser = JSON.parse(storedUser);
+      setUser({
+        _id: parsedUser.user.id || parsedUser.user._id,
+        fullName: parsedUser.user.fullName,
+        email: parsedUser.user.email,
+      });
+    }
+    loadAllImages(parsedUser ? {
+      _id: parsedUser.user.id || parsedUser.user._id,
+      fullName: parsedUser.user.fullName,
+      email: parsedUser.user.email,
+    } : null);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      imagesAPI.getLikedImages().then(setLikedImages).catch(() => setLikedImages([]));
+      loadAllImages(user);
+    } else {
+      setLikedImages([]);
+      loadAllImages(null);
+    }
+  }, [user]);
+
   const handleLogin = (userData: any) => {
     const user = {
       _id: userData.user.id || userData.user._id,
       fullName: userData.user.fullName,  
       email: userData.user.email,
-      avatar: userData.user.avatar
     };
     setUser(user);
     setShowAuthModal(false);
@@ -111,6 +138,9 @@ function App() {
       setGeneratedImages(prev =>
         prev.map(img => (img._id === imageId ? updatedImage : img))
       );
+      if (user) {
+        imagesAPI.getLikedImages().then(setLikedImages).catch(() => {});
+      }
     } catch (error) {
       console.error('Error liking image:', error);
     }
@@ -122,6 +152,21 @@ function App() {
       setGeneratedImages(prev => prev.filter(img => img._id !== imageId));
     } catch (error) {
       console.error('Error deleting image:', error);
+    }
+  };
+
+  const handleTogglePublicPrivate = async (imageId: string, makePublic: boolean) => {
+    try {
+      const updatedImage = await imagesAPI.updatePublicStatus(imageId, makePublic);
+      setGeneratedImages(prev => prev.map(img => img._id === imageId ? updatedImage : img));
+      // After toggling, re-fetch user images and merge with public images
+      if (user) {
+        const publicImages = await imagesAPI.getPublicImages();
+        const userImages = await imagesAPI.getUserImages();
+        setGeneratedImages(mergeImages(publicImages, userImages));
+      }
+    } catch (error) {
+      console.error('Error toggling public/private:', error);
     }
   };
 
@@ -166,13 +211,16 @@ function App() {
       </div>
       <div id="gallery">
         <Gallery 
-          images={generatedImages.filter(img => img.isPublic)}
+          images={generatedImages}
+          user={user}
+          likedImages={likedImages}
           onLike={handleLikeImage}
+          onTogglePublicPrivate={handleTogglePublicPrivate}
           isLoading={isLoading}
         />
       </div>
       <Features />
-      <Footer />
+      <Footer scrollToSection={scrollToSection} />
       
       {showAuthModal && (
         <AuthModal
