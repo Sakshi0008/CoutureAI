@@ -2,13 +2,12 @@ import express, { Request, Response, NextFunction, RequestHandler } from 'expres
 import { GeneratedImage } from '../models/GeneratedImage';
 import { protect, AuthRequest } from '../middleware/auth';
 import { upload } from '../config/cloudinary';
-import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
 import streamifier from 'streamifier';
+import axios from 'axios';
 
 const router = express.Router();
 
-// Define interface for file upload request
 interface FileUploadRequest extends AuthRequest {
   file?: Express.Multer.File;
 }
@@ -83,10 +82,8 @@ const likeImageHandler: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    // Check if user has already liked the image
     const hasLiked = image.likes > 0;
     
-    // Toggle like
     image.likes = hasLiked ? 0 : 1;
     await image.save();
 
@@ -110,7 +107,6 @@ const deleteImageHandler: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    // Check if user owns the image
     if (image.userId.toString() !== authReq.user?._id.toString()) {
       res.status(401).json({ message: 'Not authorized' });
       return;
@@ -124,43 +120,29 @@ const deleteImageHandler: RequestHandler = async (req, res, next) => {
   }
 };
 
-// @desc    Generate an image using Stable Diffusion and save it
+async function generateImageWithPythonBackend(prompt: string, options: any): Promise<Buffer> {
+  const response = await axios.post('http://localhost:5001/generate', {
+    prompt,
+    ...options
+  }, { responseType: 'arraybuffer' });
+  return Buffer.from(response.data as ArrayBuffer);
+}
+
+// @desc    Generate an image using Python Stable Diffusion backend and save it
 // @route   POST /api/images/generate
 // @access  Private
 router.post('/generate', protect, async (req: AuthRequest, res) => {
   try {
     const { prompt, fabric, style, occasion, filters, isPublic } = req.body;
     const userId = req.user!._id;
-    // Compose the prompt for the model
-    let fullPrompt = prompt;
-    if (fabric) fullPrompt += `, fabric: ${fabric}`;
-    if (style) fullPrompt += `, style: ${style}`;
-    if (occasion) fullPrompt += `, occasion: ${occasion}`;
-    if (filters) {
-      const f = typeof filters === 'string' ? JSON.parse(filters) : filters;
-      if (f.color) fullPrompt += `, color: ${f.color}`;
-      if (f.pattern) fullPrompt += `, pattern: ${f.pattern}`;
-      if (f.texture) fullPrompt += `, texture: ${f.texture}`;
-    }
 
-    // 1. Call Hugging Face Stable Diffusion API
-    const hfResponse = await axios.post(
-      // 'https://api-inference.huggingface.co/models/sd-legacy/stable-diffusion-v1-5',
-      'https://api-inference.huggingface.co/models/stable-diffusion-v1-5/stable-diffusion-v1-5',
-      {
-        inputs: fullPrompt,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-          Accept: 'image/png'
-        },
-        responseType: 'arraybuffer', // Get image as buffer
-      }
-    );
+    const imageBuffer = await generateImageWithPythonBackend(prompt, {
+      fabric,
+      style,
+      occasion,
+      filters
+    });
 
-    // 2. Upload to Cloudinary from buffer
     const uploadFromBuffer = (buffer: Buffer) => {
       return new Promise<any>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -174,10 +156,15 @@ router.post('/generate', protect, async (req: AuthRequest, res) => {
       });
     };
 
-    const imageBuffer = Buffer.from(hfResponse.data as Buffer);
+    // console.log('Cloudinary config:', {
+    //   cloud_name: cloudinary.config().cloud_name,
+    //   api_key: cloudinary.config().api_key ? cloudinary.config().api_key: 'missing',
+    //   api_secret: cloudinary.config().api_secret ? cloudinary.config().api_secret : 'missing'
+    // });
+
     const uploadResult = await uploadFromBuffer(imageBuffer);
 
-    // 3. Save to DB
+    // Save to DB
     const newImage = await GeneratedImage.create({
       userId,
       imageUrl: uploadResult.secure_url,
@@ -190,9 +177,10 @@ router.post('/generate', protect, async (req: AuthRequest, res) => {
     });
 
     res.status(201).json(newImage);
+    console.log("Image saved successfully");
   } catch (error) {
-    console.error('Error generating image:', error);
-    res.status(500).json({ message: 'Error generating image' });
+    console.error('Error generating your image:', error);
+    res.status(500).json({ message: 'Error generating your image' });
   }
 });
 
